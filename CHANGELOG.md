@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.6] - 2026-04-27
+
+### Added
+- **Write/configure subcommands** (all require Administrator):
+  - `ifconfig up <iface>` — bring interface UP via netsh
+  - `ifconfig down <iface>` — bring interface DOWN via netsh
+  - `ifconfig set <iface> ip <CIDR> [--gw GW]` — set static IPv4 address + gateway
+  - `ifconfig set <iface> ip dhcp` — enable DHCP for address assignment
+  - `ifconfig set <iface> add <CIDR>` — add a secondary IPv4 address
+  - `ifconfig set <iface> del <IP>` — remove an IPv4 address
+  - `ifconfig set <iface> mtu <N>` — set MTU (via `netsh interface ipv4 set subinterface`)
+  - `ifconfig set <iface> metric <N>` — set routing metric
+  - `ifconfig set <iface> dns <IP...>` — set one or more DNS servers
+  - `ifconfig set <iface> dns dhcp` — reset DNS to automatic/DHCP
+  - `ifconfig set <iface> mac <MAC>` — change MAC address via PowerShell `Set-NetAdapter`
+  - `ifconfig set <iface> flush` — flush all IPs and reset to DHCP
+- New `control.rs` module with all netsh/PowerShell wrappers
+- CIDR notation parsing and validation (`192.168.1.50/24`)
+- Error messages with `💡 Tip: Run as Administrator` hint when access is denied
+- Colorful operation feedback (green ✅, yellow 🔧, cyan 🔄)
+
 ## [1.0.5] - 2026-04-27
 
 ### Added

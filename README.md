@@ -10,7 +10,7 @@
 
 ```
 ╔══════════════════════════════════════════════════════════════════════╗
-║  🌐  win-ifconfig v1.0.5  ─  Windows Network Interface Information  ║
+║  🌐  win-ifconfig v1.0.6  ─  Windows Network Interface Information  ║
 ╚══════════════════════════════════════════════════════════════════════╝
   🖥️  Hostname: WORKSTATION-01   🕐 2024-01-15 14:32:07 WIB
 
@@ -85,6 +85,8 @@ cargo build --release
 
 ## 🚀 Usage
 
+### Read (display) — no privileges needed
+
 ```
 USAGE:
     ifconfig [OPTIONS] [INTERFACE]
@@ -108,52 +110,81 @@ OPTIONS:
     -V, --version     Print version
 ```
 
-### Examples
+### Write (configure) — ⚠️ requires Administrator
+
+```
+SUBCOMMANDS:
+    up   <IFACE>                        Bring interface UP
+    down <IFACE>                        Bring interface DOWN
+    set  <IFACE> ip <CIDR> [--gw GW]   Set static IPv4 address
+    set  <IFACE> ip dhcp                Enable DHCP for address
+    set  <IFACE> add <CIDR>             Add secondary IPv4 address
+    set  <IFACE> del <IP>               Remove an IPv4 address
+    set  <IFACE> mtu <N>                Set MTU in bytes
+    set  <IFACE> metric <N>             Set routing metric
+    set  <IFACE> dns <IP> [IP...]       Set DNS servers
+    set  <IFACE> dns dhcp               Use automatic (DHCP) DNS
+    set  <IFACE> mac <MAC>              Change MAC address
+    set  <IFACE> flush                  Flush IPs, reset to DHCP
+```
+
+### Read examples
 
 ```powershell
-# Show all active interfaces (default)
-ifconfig
+ifconfig                          # Active interfaces
+ifconfig -a                       # All interfaces including DOWN
+ifconfig "Wi-Fi"                  # Specific interface
+ifconfig -v                       # Full verbose (stats+metrics+dns+dhcp)
+ifconfig --stats                  # Packet/byte/error stats
+ifconfig --metrics                # Routing metrics
+ifconfig --dns                    # DNS per interface
+ifconfig --dhcp                   # DHCP lease details
+ifconfig -b                       # Compact one-liner per interface
+ifconfig --json                   # Machine-readable JSON
+ifconfig --watch 2                # Auto-refresh every 2 seconds
+ifconfig "Ethernet" --watch 1 -s  # Watch specific interface with stats
+ifconfig -a --summary             # Show with totals
+ifconfig --no-color > net.txt     # Plain text for log files
+```
 
-# Show specific interface
-ifconfig Ethernet
-ifconfig "Wi-Fi"
+### Write examples (run as Administrator)
 
-# Show ALL interfaces including disconnected
-ifconfig -a
+```powershell
+# Bring interfaces up/down
+ifconfig up Ethernet
+ifconfig down "Wi-Fi"
 
-# Show with full stats, metrics, DNS, DHCP
-ifconfig -v
+# Set static IP with gateway
+ifconfig set "Ethernet" ip 192.168.1.100/24 --gw 192.168.1.1
 
-# Show just stats
-ifconfig --stats
+# Enable DHCP
+ifconfig set "Wi-Fi" ip dhcp
 
-# Show metrics and routing info
-ifconfig --metrics
+# Add a secondary IP address
+ifconfig set "Ethernet" add 10.0.0.50/24
 
-# Show DNS per interface
-ifconfig --dns
+# Remove an IP address
+ifconfig set "Ethernet" del 10.0.0.50
 
-# Show DHCP lease details
-ifconfig --dhcp
+# Set MTU (e.g. jumbo frames)
+ifconfig set "Ethernet" mtu 9000
 
-# Compact one-liner per interface
-ifconfig -b
+# Set routing metric (lower = higher priority)
+ifconfig set "Wi-Fi" metric 10
+ifconfig set "Ethernet" metric 5
 
-# JSON output (great for scripts/automation)
-ifconfig --json
-ifconfig --json | python -m json.tool
+# Set custom DNS servers
+ifconfig set "Wi-Fi" dns 8.8.8.8 8.8.4.4
+ifconfig set "Ethernet" dns 1.1.1.1 1.0.0.1 9.9.9.9
 
-# Watch mode — refresh every 2 seconds
-ifconfig --watch 2
+# Reset DNS to DHCP/automatic
+ifconfig set "Wi-Fi" dns dhcp
 
-# Watch specific interface
-ifconfig Ethernet --watch 1 --stats
+# Change MAC address (adapter must support it)
+ifconfig set "Ethernet" mac AA:BB:CC:DD:EE:FF
 
-# Summary stats at the end
-ifconfig -a --summary
-
-# No colors (for log files / piping)
-ifconfig --no-color > net.txt
+# Flush all IPs and reset to DHCP
+ifconfig set "Ethernet" flush
 ```
 
 ---
