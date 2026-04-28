@@ -2,12 +2,12 @@
 
 All notable changes to win-ifconfig will be documented in this file.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.3/),
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.4/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-## [1.0.3] - 2026-04-27
+## [1.0.4] - 2026-04-27
 
 ### Added
 - Initial release
@@ -36,5 +36,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - GitHub Actions release workflow with multi-arch builds (x64, x86, ARM64)
 - Automated crates.io publishing on release tags
 
-[Unreleased]: https://github.com/cumulus13/win-ifconfig/compare/v1.0.3...HEAD
-[1.0.3]: https://github.com/cumulus13/win-ifconfig/releases/tag/v1.0.3
+[Unreleased]: https://github.com/cumulus13/win-ifconfig/compare/v1.0.4...HEAD
+[1.0.4]: https://github.com/cumulus13/win-ifconfig/releases/tag/v1.0.4

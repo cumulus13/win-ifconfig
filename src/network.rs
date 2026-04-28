@@ -309,12 +309,12 @@ fn parse_adapter(adapter: &IP_ADAPTER_ADDRESSES_LH) -> Option<AdapterInfo> {
         t if t == IF_TYPE_IEEE80211 => AdapterType::WiFi,
         t if t == IF_TYPE_SOFTWARE_LOOPBACK => AdapterType::Loopback,
         t if t == IF_TYPE_TUNNEL => AdapterType::Tunnel,
-        t if t == IF_TYPE_PPP => AdapterType::PPP,
+        t if t == IF_TYPE_PPP => AdapterType::Ppp,
         _ => {
             if description.to_lowercase().contains("vpn")
                 || description.to_lowercase().contains("virtual")
             {
-                AdapterType::VPN
+                AdapterType::Vpn
             } else {
                 AdapterType::Other(format!("Type({})", adapter.IfType))
             }
@@ -390,7 +390,7 @@ fn parse_adapter(adapter: &IP_ADAPTER_ADDRESSES_LH) -> Option<AdapterInfo> {
     while !gw_ptr.is_null() {
         let gw = unsafe { &*gw_ptr };
         if let Some(ip) = parse_socket_address(&gw.Address) {
-            if let IpAddr::V4(_) = ip {
+        if ip.is_ipv4() {
                 gateway = Some(ip.to_string());
                 break;
             }
@@ -444,7 +444,7 @@ fn parse_adapter(adapter: &IP_ADAPTER_ADDRESSES_LH) -> Option<AdapterInfo> {
 
     let is_loopback = matches!(adapter_type, AdapterType::Loopback);
     let is_up = matches!(status, AdapterStatus::Up);
-    let is_ppp = matches!(adapter_type, AdapterType::PPP);
+    let is_ppp = matches!(adapter_type, AdapterType::Ppp);
     let is_dhcp = dhcp_enabled;
 
     Some(AdapterInfo {
@@ -517,8 +517,10 @@ fn parse_socket_address(addr: &SOCKET_ADDRESS) -> Option<IpAddr> {
 fn get_interface_stats(if_index: u32) -> Option<AdapterStats> {
     use windows::Win32::Foundation::WIN32_ERROR;
 
-    let mut row = MIB_IF_ROW2::default();
-    row.InterfaceIndex = if_index;
+    let mut row = MIB_IF_ROW2 {
+        InterfaceIndex: if_index,
+        ..Default::default()
+    };
 
     let result = unsafe { GetIfEntry2(&mut row) };
     if result != WIN32_ERROR(0) {

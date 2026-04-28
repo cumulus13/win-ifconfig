@@ -64,9 +64,9 @@ pub enum AdapterType {
     WiFi,
     Loopback,
     Tunnel,
-    PPP,
+    Ppp,
     Bridge,
-    VPN,
+    Vpn,
     Other(String),
 }
 
@@ -77,9 +77,9 @@ impl std::fmt::Display for AdapterType {
             AdapterType::WiFi => write!(f, "IEEE 802.11 (Wi-Fi)"),
             AdapterType::Loopback => write!(f, "Local Loopback"),
             AdapterType::Tunnel => write!(f, "Tunnel"),
-            AdapterType::PPP => write!(f, "Point-to-Point"),
+            AdapterType::Ppp => write!(f, "Point-to-Point"),
             AdapterType::Bridge => write!(f, "Bridge"),
-            AdapterType::VPN => write!(f, "VPN"),
+            AdapterType::Vpn => write!(f, "VPN"),
             AdapterType::Other(s) => write!(f, "{}", s),
         }
     }
@@ -92,9 +92,9 @@ impl AdapterType {
             AdapterType::WiFi => "📶",
             AdapterType::Loopback => "🔁",
             AdapterType::Tunnel => "🚇",
-            AdapterType::PPP => "🔗",
+            AdapterType::Ppp => "🔗",
             AdapterType::Bridge => "🌉",
-            AdapterType::VPN => "🔒",
+            AdapterType::Vpn => "🔒",
             AdapterType::Other(_) => "🔧",
         }
     }

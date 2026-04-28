@@ -475,9 +475,9 @@ fn link_type_name(t: &AdapterType) -> &str {
         AdapterType::WiFi => "ieee802.11",
         AdapterType::Loopback => "loopback",
         AdapterType::Tunnel => "tunnel",
-        AdapterType::PPP => "ppp",
+        AdapterType::Ppp => "ppp",
         AdapterType::Bridge => "bridge",
-        AdapterType::VPN => "vpn",
+        AdapterType::Vpn => "vpn",
         AdapterType::Other(_) => "unknown",
     }
 }
