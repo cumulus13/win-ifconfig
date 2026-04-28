@@ -7,17 +7,14 @@ use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 
 #[cfg(windows)]
 use windows::Win32::NetworkManagement::IpHelper::{
-    GetAdaptersAddresses, GetIfEntry2, MIB_IF_ROW2,
-    GAA_FLAG_INCLUDE_PREFIX, GAA_FLAG_INCLUDE_WINS_INFO,
-    GAA_FLAG_INCLUDE_GATEWAYS, GAA_FLAG_INCLUDE_ALL_INTERFACES,
-    IP_ADAPTER_ADDRESSES_LH,
-};
-#[cfg(windows)]
-use windows::Win32::Networking::WinSock::{
-    AF_UNSPEC, SOCKET_ADDRESS,
+    GAA_FLAG_INCLUDE_ALL_INTERFACES, GAA_FLAG_INCLUDE_GATEWAYS, GAA_FLAG_INCLUDE_PREFIX,
+    GAA_FLAG_INCLUDE_WINS_INFO, GetAdaptersAddresses, GetIfEntry2, IP_ADAPTER_ADDRESSES_LH,
+    MIB_IF_ROW2,
 };
 #[cfg(windows)]
 use windows::Win32::Foundation::ERROR_BUFFER_OVERFLOW;
+#[cfg(windows)]
+use windows::Win32::Networking::WinSock::{AF_UNSPEC, SOCKET_ADDRESS};
 
 /// Main entry point: collect all adapter information
 pub fn get_adapters() -> Result<Vec<AdapterInfo>, Box<dyn std::error::Error>> {
@@ -68,18 +65,18 @@ fn get_stub_adapters() -> Vec<AdapterInfo> {
             speed: None,
             metric: 75,
             stats: Some(AdapterStats {
-                rx_bytes: 1234567,
-                rx_packets: 12345,
+                rx_bytes: 1_234_567,
+                rx_packets: 12_345,
                 rx_errors: 0,
                 rx_dropped: 0,
-                rx_unicast: 12000,
+                rx_unicast: 12_000,
                 rx_multicast: 200,
                 rx_broadcast: 145,
-                tx_bytes: 1234567,
-                tx_packets: 12345,
+                tx_bytes: 1_234_567,
+                tx_packets: 12_345,
                 tx_errors: 0,
                 tx_dropped: 0,
-                tx_unicast: 12000,
+                tx_unicast: 12_000,
                 tx_multicast: 200,
                 tx_broadcast: 145,
                 collisions: 0,
@@ -131,20 +128,20 @@ fn get_stub_adapters() -> Vec<AdapterInfo> {
             speed: Some(1_000_000_000),
             metric: 25,
             stats: Some(AdapterStats {
-                rx_bytes: 9876543210,
-                rx_packets: 7654321,
+                rx_bytes: 9_876_543_210,
+                rx_packets: 7_654_321,
                 rx_errors: 3,
                 rx_dropped: 12,
-                rx_unicast: 7000000,
-                rx_multicast: 50000,
-                rx_broadcast: 604321,
-                tx_bytes: 1234567890,
-                tx_packets: 1234567,
+                rx_unicast: 7_000_000,
+                rx_multicast: 50_000,
+                rx_broadcast: 604_321,
+                tx_bytes: 1_234_567_890,
+                tx_packets: 1_234_567,
                 tx_errors: 0,
                 tx_dropped: 1,
-                tx_unicast: 1200000,
-                tx_multicast: 10000,
-                tx_broadcast: 24567,
+                tx_unicast: 1_200_000,
+                tx_multicast: 10_000,
+                tx_broadcast: 24_567,
                 collisions: 0,
             }),
             flags: AdapterFlags {
@@ -218,9 +215,6 @@ fn get_stub_adapters() -> Vec<AdapterInfo> {
 
 #[cfg(windows)]
 fn get_adapters_windows() -> Result<Vec<AdapterInfo>, Box<dyn std::error::Error>> {
-    use std::mem;
-    use std::ptr;
-
     let flags = GAA_FLAG_INCLUDE_PREFIX
         | GAA_FLAG_INCLUDE_WINS_INFO
         | GAA_FLAG_INCLUDE_GATEWAYS
@@ -241,13 +235,13 @@ fn get_adapters_windows() -> Result<Vec<AdapterInfo>, Box<dyn std::error::Error>
             )
         };
 
-        if result == 0 {
+        if result.0 == 0 {
             break;
-        } else if result == ERROR_BUFFER_OVERFLOW.0 {
-            // Retry with larger buffer
+        } else if result == ERROR_BUFFER_OVERFLOW {
+            // buf_len was updated by the call, retry with larger buffer
             continue;
         } else {
-            return Err(format!("GetAdaptersAddresses failed with error: {}", result).into());
+            return Err(format!("GetAdaptersAddresses failed with error: {}", result.0).into());
         }
     }
 
@@ -267,14 +261,13 @@ fn get_adapters_windows() -> Result<Vec<AdapterInfo>, Box<dyn std::error::Error>
 
 #[cfg(windows)]
 fn parse_adapter(adapter: &IP_ADAPTER_ADDRESSES_LH) -> Option<AdapterInfo> {
-    use windows::core::PCWSTR;
-    use windows::Win32::NetworkManagement::IpHelper::{
-        IF_TYPE_ETHERNET_CSMACD, IF_TYPE_IEEE80211, IF_TYPE_SOFTWARE_LOOPBACK,
-        IF_TYPE_TUNNEL, IF_TYPE_PPP,
-    };
-    use windows::Win32::NetworkManagement::Ndis::IfOperStatusUp;
     use std::ffi::OsString;
     use std::os::windows::ffi::OsStringExt;
+    use windows::Win32::NetworkManagement::IpHelper::{
+        IF_TYPE_ETHERNET_CSMACD, IF_TYPE_IEEE80211, IF_TYPE_PPP, IF_TYPE_SOFTWARE_LOOPBACK,
+        IF_TYPE_TUNNEL,
+    };
+    use windows::Win32::NetworkManagement::Ndis::IfOperStatusUp;
 
     // Adapter name (GUID style)
     let name = unsafe {
@@ -290,7 +283,9 @@ fn parse_adapter(adapter: &IP_ADAPTER_ADDRESSES_LH) -> Option<AdapterInfo> {
         if adapter.FriendlyName.0.is_null() {
             name.clone()
         } else {
-            let len = (0..).take_while(|&i| *adapter.FriendlyName.0.add(i) != 0).count();
+            let len = (0..)
+                .take_while(|&i| *adapter.FriendlyName.0.add(i) != 0)
+                .count();
             let slice = std::slice::from_raw_parts(adapter.FriendlyName.0, len);
             OsString::from_wide(slice).to_string_lossy().to_string()
         }
@@ -301,7 +296,9 @@ fn parse_adapter(adapter: &IP_ADAPTER_ADDRESSES_LH) -> Option<AdapterInfo> {
         if adapter.Description.0.is_null() {
             String::new()
         } else {
-            let len = (0..).take_while(|&i| *adapter.Description.0.add(i) != 0).count();
+            let len = (0..)
+                .take_while(|&i| *adapter.Description.0.add(i) != 0)
+                .count();
             let slice = std::slice::from_raw_parts(adapter.Description.0, len);
             OsString::from_wide(slice).to_string_lossy().to_string()
         }
@@ -413,14 +410,16 @@ fn parse_adapter(adapter: &IP_ADAPTER_ADDRESSES_LH) -> Option<AdapterInfo> {
         dns_ptr = dns.Next;
     }
 
-    // DHCP
-    let dhcp_enabled = (adapter.Flags & 0x04) != 0; // IP_ADAPTER_DHCP_ENABLED
-    let dhcp_server = parse_socket_address(unsafe { &(*adapter.Dhcpv4Server) })
-        .map(|ip| ip.to_string());
+    // DHCP — the Flags field is inside an anonymous union: adapter.Anonymous2.Flags
+    let dhcp_enabled = (unsafe { adapter.Anonymous2.Flags } & 0x04) != 0;
 
-    // DHCP lease times
-    let dhcp_lease_obtained = filetime_to_string(adapter.LeaseObtained);
-    let dhcp_lease_expires = filetime_to_string(adapter.LeaseExpires);
+    // DHCP server — Dhcpv4Server is a SOCKET_ADDRESS value (not a pointer)
+    let dhcp_server = parse_socket_address(&adapter.Dhcpv4Server).map(|ip| ip.to_string());
+
+    // DHCP lease timestamps are not exposed in the windows-rs 0.58 IP_ADAPTER_ADDRESSES_LH
+    // binding. They can be retrieved from the registry in a future enhancement.
+    let dhcp_lease_obtained: Option<String> = None;
+    let dhcp_lease_expires: Option<String> = None;
 
     // WINS servers
     let mut wins_servers = Vec::new();
@@ -433,8 +432,9 @@ fn parse_adapter(adapter: &IP_ADAPTER_ADDRESSES_LH) -> Option<AdapterInfo> {
         wins = w.Next;
     }
 
-    // Interface statistics via GetIfEntry2
-    let stats = get_interface_stats(adapter.IfIndex);
+    // IfIndex lives inside Anonymous1.Anonymous.IfIndex
+    let if_index = unsafe { adapter.Anonymous1.Anonymous.IfIndex };
+    let stats = get_interface_stats(if_index);
 
     // Speed
     let speed = if adapter.TransmitLinkSpeed > 0 && adapter.TransmitLinkSpeed != u64::MAX {
@@ -449,7 +449,7 @@ fn parse_adapter(adapter: &IP_ADAPTER_ADDRESSES_LH) -> Option<AdapterInfo> {
     let is_dhcp = dhcp_enabled;
 
     Some(AdapterInfo {
-        index: adapter.IfIndex,
+        index: if_index,
         name: friendly_name.clone(),
         friendly_name,
         description,
@@ -516,11 +516,13 @@ fn parse_socket_address(addr: &SOCKET_ADDRESS) -> Option<IpAddr> {
 
 #[cfg(windows)]
 fn get_interface_stats(if_index: u32) -> Option<AdapterStats> {
+    use windows::Win32::Foundation::WIN32_ERROR;
+
     let mut row = MIB_IF_ROW2::default();
     row.InterfaceIndex = if_index;
 
     let result = unsafe { GetIfEntry2(&mut row) };
-    if result != 0 {
+    if result != WIN32_ERROR(0) {
         return None;
     }
 
@@ -530,15 +532,16 @@ fn get_interface_stats(if_index: u32) -> Option<AdapterStats> {
         rx_errors: row.InErrors,
         rx_dropped: row.InDiscards,
         rx_unicast: row.InUcastPkts,
-        rx_multicast: row.InMulticastPkts,
-        rx_broadcast: row.InBroadcastPkts,
+        // MIB_IF_ROW2 exposes Octets (bytes) for multicast/broadcast, not packet counts
+        rx_multicast: row.InMulticastOctets,
+        rx_broadcast: row.InBroadcastOctets,
         tx_bytes: row.OutOctets,
         tx_packets: row.OutUcastPkts + row.OutNUcastPkts,
         tx_errors: row.OutErrors,
         tx_dropped: row.OutDiscards,
         tx_unicast: row.OutUcastPkts,
-        tx_multicast: row.OutMulticastPkts,
-        tx_broadcast: row.OutBroadcastPkts,
+        tx_multicast: row.OutMulticastOctets,
+        tx_broadcast: row.OutBroadcastOctets,
         collisions: 0, // Not available in MIB_IF_ROW2
     })
 }
@@ -548,7 +551,7 @@ fn prefix_to_netmask_v4(prefix_len: u8) -> String {
         return "0.0.0.0".to_string();
     }
     let mask: u32 = if prefix_len >= 32 {
-        0xFFFFFFFF
+        0xFFFF_FFFF
     } else {
         !((1u32 << (32 - prefix_len)) - 1)
     };
@@ -558,7 +561,7 @@ fn prefix_to_netmask_v4(prefix_len: u8) -> String {
 fn calc_broadcast_v4(addr: Ipv4Addr, prefix_len: u8) -> String {
     let ip: u32 = u32::from(addr);
     let mask: u32 = if prefix_len >= 32 {
-        0xFFFFFFFF
+        0xFFFF_FFFF
     } else {
         !((1u32 << (32 - prefix_len)) - 1)
     };
@@ -579,6 +582,7 @@ fn classify_ipv6_scope(addr: Ipv6Addr) -> IpScope {
     }
 }
 
+#[allow(dead_code)]
 fn filetime_to_string(ft: i64) -> Option<String> {
     if ft == 0 {
         return None;
@@ -590,7 +594,7 @@ fn filetime_to_string(ft: i64) -> Option<String> {
         return None;
     }
     let unix_ts_secs = unix_ts_100ns / 10_000_000;
-    use chrono::{DateTime, Utc, TimeZone};
+    use chrono::{TimeZone, Utc};
     let dt = Utc.timestamp_opt(unix_ts_secs, 0).single()?;
     let local: chrono::DateTime<chrono::Local> = dt.into();
     Some(local.format("%Y-%m-%d %H:%M:%S").to_string())

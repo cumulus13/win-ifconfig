@@ -172,7 +172,7 @@ fn print_adapter_full(adapter: &AdapterInfo, cli: &Cli) {
         );
     }
 
-    // Speed / duplex line  
+    // Speed / duplex line
     if let Some(speed) = adapter.speed {
         println!(
             "        {}  {}",
@@ -448,10 +448,7 @@ fn print_summary(all_adapters: &[AdapterInfo], shown: &[&AdapterInfo]) {
 }
 
 /// JSON output
-pub fn output_json(
-    adapters: &[AdapterInfo],
-    cli: &Cli,
-) -> Result<(), Box<dyn std::error::Error>> {
+pub fn output_json(adapters: &[AdapterInfo], cli: &Cli) -> Result<(), Box<dyn std::error::Error>> {
     let filtered: Vec<&AdapterInfo> = adapters
         .iter()
         .filter(|a| {

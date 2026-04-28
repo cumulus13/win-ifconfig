@@ -21,7 +21,7 @@ pub struct AdapterInfo {
     pub dhcp_lease_obtained: Option<String>,
     pub dhcp_lease_expires: Option<String>,
     pub mtu: u32,
-    pub speed: Option<u64>,       // bps
+    pub speed: Option<u64>, // bps
     pub metric: u32,
     pub stats: Option<AdapterStats>,
     pub flags: AdapterFlags,
@@ -162,16 +162,36 @@ pub struct AdapterFlags {
 impl AdapterFlags {
     pub fn to_flag_string(&self) -> String {
         let mut flags = Vec::new();
-        if self.up { flags.push("UP"); }
-        if self.broadcast { flags.push("BROADCAST"); }
-        if self.loopback { flags.push("LOOPBACK"); }
-        if self.point_to_point { flags.push("POINTOPOINT"); }
-        if self.running { flags.push("RUNNING"); }
-        if self.no_arp { flags.push("NOARP"); }
-        if self.promisc { flags.push("PROMISC"); }
-        if self.multicast { flags.push("MULTICAST"); }
-        if self.dynamic { flags.push("DYNAMIC"); }
-        if self.dhcp { flags.push("DHCP"); }
+        if self.up {
+            flags.push("UP");
+        }
+        if self.broadcast {
+            flags.push("BROADCAST");
+        }
+        if self.loopback {
+            flags.push("LOOPBACK");
+        }
+        if self.point_to_point {
+            flags.push("POINTOPOINT");
+        }
+        if self.running {
+            flags.push("RUNNING");
+        }
+        if self.no_arp {
+            flags.push("NOARP");
+        }
+        if self.promisc {
+            flags.push("PROMISC");
+        }
+        if self.multicast {
+            flags.push("MULTICAST");
+        }
+        if self.dynamic {
+            flags.push("DYNAMIC");
+        }
+        if self.dhcp {
+            flags.push("DHCP");
+        }
         flags.join(",")
     }
 }

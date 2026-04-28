@@ -5,11 +5,11 @@
 
 #![allow(non_snake_case)]
 
-mod network;
 mod display;
+mod network;
 mod types;
 
-use clap::{Parser, ArgAction};
+use clap::{ArgAction, Parser};
 use std::process;
 
 #[derive(Parser, Debug)]
@@ -20,7 +20,7 @@ use std::process;
     about = "🌐 win-ifconfig — Linux-style ifconfig for Windows with colors, metrics & more",
     long_about = r#"
 ╔══════════════════════════════════════════════════════════╗
-║           win-ifconfig v1.0.1  by Hadi Cahyadi           ║
+║           win-ifconfig v1.0.2  by Hadi Cahyadi           ║
 ║     Linux-compatible network interface information       ║
 ║     with Windows extras: metrics, DNS, routing & more    ║
 ╚══════════════════════════════════════════════════════════╝
@@ -122,9 +122,13 @@ fn run_watch_mode(cli: &Cli, interval: u64) {
     loop {
         // Clear screen
         print!("\x1B[2J\x1B[1;1H");
-        
+
         let now = chrono::Local::now();
-        println!("🔄 Refreshing every {}s — Last update: {}", interval, now.format("%H:%M:%S"));
+        println!(
+            "🔄 Refreshing every {}s — Last update: {}",
+            interval,
+            now.format("%H:%M:%S")
+        );
         println!();
 
         if let Err(e) = run_once(cli) {

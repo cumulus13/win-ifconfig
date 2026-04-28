@@ -10,7 +10,7 @@
 
 ```
 ╔══════════════════════════════════════════════════════════════════════╗
-║    🌐  win-ifconfig v1.0.1  ─  Windows Network Interface Information  ║
+║  🌐  win-ifconfig v1.0.2  ─  Windows Network Interface Information  ║
 ╚══════════════════════════════════════════════════════════════════════╝
   🖥️  Hostname: WORKSTATION-01   🕐 2024-01-15 14:32:07 WIB
 
@@ -67,7 +67,7 @@ Rename to `ifconfig.exe` and place it in any folder on your `PATH` (e.g., `C:\Wi
 ### Option 2 — Install via cargo
 
 ```powershell
-cargo install ifconfig
+cargo install win-ifconfig
 ```
 
 > Requires Rust toolchain. Get it at [rustup.rs](https://rustup.rs).
