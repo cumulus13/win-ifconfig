@@ -1,0 +1,13 @@
+/target
+/dist
+*.exe
+!tests/**/*.exe
+Cargo.lock
+.env
+.DS_Store
+*.pdb
+*.ilk
+
+# Added entries (2 items)
+*sublime*
+target/

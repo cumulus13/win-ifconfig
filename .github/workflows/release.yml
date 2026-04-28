@@ -1,0 +1,231 @@
+name: Build & Release win-ifconfig
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+    branches:
+      - main
+      - dev
+  pull_request:
+    branches:
+      - main
+
+env:
+  CARGO_TERM_COLOR: always
+  BINARY_NAME: ifconfig
+
+jobs:
+  # ─────────────────────────────────────────────────────────────────────────
+  # Lint & Format Check
+  # ─────────────────────────────────────────────────────────────────────────
+  lint:
+    name: 🔍 Lint & Format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+          targets: x86_64-pc-windows-gnu
+
+      - name: Cache cargo registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-lint-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+
+      - name: Run Clippy (Windows target)
+        run: |
+          sudo apt-get install -y gcc-mingw-w64-x86-64
+          cargo clippy --target x86_64-pc-windows-gnu -- -D warnings
+        continue-on-error: true
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Build Matrix
+  # ─────────────────────────────────────────────────────────────────────────
+  build:
+    name: 🔨 Build (${{ matrix.target }})
+    needs: lint
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Windows x64 (primary)
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            artifact_name: ifconfig.exe
+            asset_name: win-ifconfig-x86_64-windows.exe
+            cross: false
+
+          # Windows x86 (32-bit)
+          - os: windows-latest
+            target: i686-pc-windows-msvc
+            artifact_name: ifconfig.exe
+            asset_name: win-ifconfig-i686-windows.exe
+            cross: false
+
+          # Windows ARM64
+          - os: windows-latest
+            target: aarch64-pc-windows-msvc
+            artifact_name: ifconfig.exe
+            asset_name: win-ifconfig-aarch64-windows.exe
+            cross: false
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-${{ matrix.target }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ matrix.target }}-cargo-
+
+      - name: Build release binary
+        run: cargo build --release --target ${{ matrix.target }}
+
+      - name: Strip binary (Windows MSVC)
+        if: runner.os == 'Windows'
+        run: |
+          # Copy artifact
+          cp target/${{ matrix.target }}/release/${{ matrix.artifact_name }} ${{ matrix.asset_name }}
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.asset_name }}
+          path: ${{ matrix.asset_name }}
+          retention-days: 7
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Test on Windows
+  # ─────────────────────────────────────────────────────────────────────────
+  test:
+    name: 🧪 Test (Windows)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: windows-test-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Run tests
+        run: cargo test --release
+
+      - name: Smoke test — run binary
+        run: |
+          cargo build --release
+          ./target/release/ifconfig.exe --version
+          ./target/release/ifconfig.exe --all
+          ./target/release/ifconfig.exe --json
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Create GitHub Release
+  # ─────────────────────────────────────────────────────────────────────────
+  release:
+    name: 🚀 Release
+    needs: [build, test]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts/
+
+      - name: Generate changelog
+        id: changelog
+        run: |
+          VERSION="${GITHUB_REF#refs/tags/}"
+          echo "## What's Changed in ${VERSION}" > CHANGELOG_SECTION.md
+          echo "" >> CHANGELOG_SECTION.md
+          
+          # Get commits since last tag
+          PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+          if [ -n "$PREV_TAG" ]; then
+            git log ${PREV_TAG}..HEAD --pretty=format:"- %s (%h)" --no-merges >> CHANGELOG_SECTION.md
+          else
+            git log --pretty=format:"- %s (%h)" --no-merges -20 >> CHANGELOG_SECTION.md
+          fi
+          
+          echo "" >> CHANGELOG_SECTION.md
+          echo "---" >> CHANGELOG_SECTION.md
+          echo "" >> CHANGELOG_SECTION.md
+          echo "**Full Changelog**: https://github.com/cumulus13/win-ifconfig/commits/${VERSION}" >> CHANGELOG_SECTION.md
+          
+          cat CHANGELOG_SECTION.md
+
+      - name: Create release and upload assets
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "win-ifconfig ${{ github.ref_name }}"
+          body_path: CHANGELOG_SECTION.md
+          draft: false
+          prerelease: ${{ contains(github.ref_name, 'alpha') || contains(github.ref_name, 'beta') || contains(github.ref_name, 'rc') }}
+          files: |
+            artifacts/**/*.exe
+          generate_release_notes: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Publish to crates.io (on release tag)
+  # ─────────────────────────────────────────────────────────────────────────
+  publish-crate:
+    name: 📦 Publish to crates.io
+    needs: release
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v') && !contains(github.ref_name, 'alpha') && !contains(github.ref_name, 'beta')
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-gnu
+
+      - name: Install MinGW for cross-compile check
+        run: sudo apt-get install -y gcc-mingw-w64-x86-64
+
+      - name: Check package (dry run)
+        run: cargo package --target x86_64-pc-windows-gnu --allow-dirty
+
+      - name: Publish to crates.io
+        run: cargo publish --token ${{ secrets.CRATES_IO_TOKEN }} --target x86_64-pc-windows-gnu --allow-dirty
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CRATES_IO_TOKEN }}

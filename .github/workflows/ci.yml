@@ -1,0 +1,95 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, dev, "feature/**", "fix/**" ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  check:
+    name: 🔎 Check & Lint
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install stable toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: windows-ci-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: cargo check
+        run: cargo check --release
+
+      - name: cargo fmt
+        run: cargo fmt --all -- --check
+
+      - name: cargo clippy
+        run: cargo clippy --release -- -W clippy::all
+        continue-on-error: true
+
+  build-and-test:
+    name: 🔨 Build & Test
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install stable toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: windows-build-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Build
+        run: cargo build --release
+
+      - name: Run tests
+        run: cargo test --release
+
+      - name: Smoke test
+        shell: pwsh
+        run: |
+          $bin = "target\release\ifconfig.exe"
+          
+          Write-Host "=== Version ===" -ForegroundColor Cyan
+          & $bin --version
+          
+          Write-Host "`n=== Default output ===" -ForegroundColor Cyan
+          & $bin
+          
+          Write-Host "`n=== All interfaces ===" -ForegroundColor Cyan
+          & $bin --all
+          
+          Write-Host "`n=== JSON output ===" -ForegroundColor Cyan
+          & $bin --json | ConvertFrom-Json | Select-Object -First 1 name, status
+          
+          Write-Host "`n=== With stats & metrics ===" -ForegroundColor Cyan
+          & $bin --all --stats --metrics
+          
+          Write-Host "`n=== Verbose ===" -ForegroundColor Cyan
+          & $bin --all --verbose
+
+      - name: Upload CI artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ifconfig-ci-${{ github.sha }}
+          path: target/release/ifconfig.exe
+          retention-days: 3
