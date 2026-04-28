@@ -390,7 +390,7 @@ fn parse_adapter(adapter: &IP_ADAPTER_ADDRESSES_LH) -> Option<AdapterInfo> {
     while !gw_ptr.is_null() {
         let gw = unsafe { &*gw_ptr };
         if let Some(ip) = parse_socket_address(&gw.Address) {
-        if ip.is_ipv4() {
+            if ip.is_ipv4() {
                 gateway = Some(ip.to_string());
                 break;
             }

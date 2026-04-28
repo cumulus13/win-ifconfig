@@ -20,7 +20,7 @@ use std::process;
     about = "🌐 win-ifconfig — Linux-style ifconfig for Windows with colors, metrics & more",
     long_about = r#"
 ╔══════════════════════════════════════════════════════════╗
-║           win-ifconfig v1.0.4  by Hadi Cahyadi           ║
+║           win-ifconfig v1.0.5  by Hadi Cahyadi           ║
 ║     Linux-compatible network interface information       ║
 ║     with Windows extras: metrics, DNS, routing & more    ║
 ╚══════════════════════════════════════════════════════════╝
