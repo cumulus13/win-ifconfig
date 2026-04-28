@@ -6,13 +6,12 @@ use crate::types::*;
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 
 #[cfg(windows)]
-use windows::Win32::NetworkManagement::IpHelper::{
-    GAA_FLAG_INCLUDE_ALL_INTERFACES, GAA_FLAG_INCLUDE_GATEWAYS, GAA_FLAG_INCLUDE_PREFIX,
-    GAA_FLAG_INCLUDE_WINS_INFO, GetAdaptersAddresses, GetIfEntry2, IP_ADAPTER_ADDRESSES_LH,
-    MIB_IF_ROW2,
-};
-#[cfg(windows)]
 use windows::Win32::Foundation::ERROR_BUFFER_OVERFLOW;
+#[cfg(windows)]
+use windows::Win32::NetworkManagement::IpHelper::{
+    GetAdaptersAddresses, GetIfEntry2, GAA_FLAG_INCLUDE_ALL_INTERFACES, GAA_FLAG_INCLUDE_GATEWAYS,
+    GAA_FLAG_INCLUDE_PREFIX, GAA_FLAG_INCLUDE_WINS_INFO, IP_ADAPTER_ADDRESSES_LH, MIB_IF_ROW2,
+};
 #[cfg(windows)]
 use windows::Win32::Networking::WinSock::{AF_UNSPEC, SOCKET_ADDRESS};
 
@@ -235,13 +234,13 @@ fn get_adapters_windows() -> Result<Vec<AdapterInfo>, Box<dyn std::error::Error>
             )
         };
 
-        if result.0 == 0 {
+        if result == 0 {
             break;
-        } else if result == ERROR_BUFFER_OVERFLOW {
+        } else if result == ERROR_BUFFER_OVERFLOW.0 {
             // buf_len was updated by the call, retry with larger buffer
             continue;
         } else {
-            return Err(format!("GetAdaptersAddresses failed with error: {}", result.0).into());
+            return Err(format!("GetAdaptersAddresses failed with error: {}", result).into());
         }
     }
 
