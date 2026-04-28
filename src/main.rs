@@ -21,7 +21,7 @@ use std::process;
     about = "🌐 win-ifconfig — Linux-style ifconfig for Windows with colors, metrics & more",
     long_about = r#"
 ╔══════════════════════════════════════════════════════════╗
-║           win-ifconfig v1.0.6  by Hadi Cahyadi           ║
+║           win-ifconfig v1.0.7  by Hadi Cahyadi           ║
 ║     Linux-compatible network interface information       ║
 ║     with Windows extras: metrics, DNS, routing & more    ║
 ╚══════════════════════════════════════════════════════════╝
@@ -50,6 +50,7 @@ WRITE (subcommands — require Administrator):
 
 NOTE: Write operations call netsh/PowerShell and require elevation.
 "#,
+    subcommand_negates_reqs = true,
 )]
 pub struct Cli {
     /// Interface name or index to display (show all if omitted)
@@ -230,7 +231,6 @@ fn main() {
 
 fn run_once(cli: &Cli) -> Result<(), Box<dyn std::error::Error>> {
     let adapters = network::get_adapters()?;
-
     if cli.json {
         display::output_json(&adapters, cli)?;
     } else {
@@ -246,7 +246,6 @@ fn run_watch_mode(cli: &Cli, interval: u64) {
     loop {
         // Clear screen
         print!("\x1B[2J\x1B[1;1H");
-
         let now = chrono::Local::now();
         println!(
             "🔄 Refreshing every {}s — Last update: {}",
@@ -254,11 +253,9 @@ fn run_watch_mode(cli: &Cli, interval: u64) {
             now.format("%H:%M:%S")
         );
         println!();
-
         if let Err(e) = run_once(cli) {
             eprintln!("❌ Error: {}", e);
         }
-
         thread::sleep(Duration::from_secs(interval));
     }
 }

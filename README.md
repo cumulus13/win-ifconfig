@@ -10,7 +10,7 @@
 
 ```
 ╔══════════════════════════════════════════════════════════════════════╗
-║  🌐  win-ifconfig v1.0.6  ─  Windows Network Interface Information  ║
+║  🌐  win-ifconfig v1.0.7  ─  Windows Network Interface Information  ║
 ╚══════════════════════════════════════════════════════════════════════╝
   🖥️  Hostname: WORKSTATION-01   🕐 2024-01-15 14:32:07 WIB
 
@@ -92,7 +92,7 @@ USAGE:
     ifconfig [OPTIONS] [INTERFACE]
 
 ARGUMENTS:
-    [INTERFACE]   Interface name or index to display (shows all active if omitted)
+    [INTERFACE]   Interface name or index (shows all active if omitted)
 
 OPTIONS:
     -a, --all         Show all interfaces (including DOWN and loopback)

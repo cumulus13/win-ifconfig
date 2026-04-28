@@ -65,14 +65,7 @@ fn set_ip(iface: &str, address: &str, gateway: Option<&str>) -> Result<()> {
             "DHCP".bright_cyan().bold()
         );
         // Enable DHCP for address
-        netsh(&[
-            "interface",
-            "ip",
-            "set",
-            "address",
-            iface,
-            "dhcp",
-        ])?;
+        netsh(&["interface", "ip", "set", "address", iface, "dhcp"])?;
         println!("  {} DHCP enabled for address.", "✅".bright_green());
         return Ok(());
     }
@@ -132,15 +125,7 @@ fn add_ip(iface: &str, address: &str) -> Result<()> {
         iface.bright_white().bold()
     );
 
-    netsh(&[
-        "interface",
-        "ip",
-        "add",
-        "address",
-        iface,
-        &ip,
-        &mask,
-    ])?;
+    netsh(&["interface", "ip", "add", "address", iface, &ip, &mask])?;
 
     println!("  {} Address added.", "✅".bright_green());
     Ok(())
@@ -157,14 +142,7 @@ fn del_ip(iface: &str, address: &str) -> Result<()> {
         iface.bright_white().bold()
     );
 
-    netsh(&[
-        "interface",
-        "ip",
-        "delete",
-        "address",
-        iface,
-        ip,
-    ])?;
+    netsh(&["interface", "ip", "delete", "address", iface, ip])?;
 
     println!("  {} Address removed.", "✅".bright_green());
     Ok(())
@@ -178,23 +156,9 @@ fn flush_ip(iface: &str) -> Result<()> {
     );
 
     // Reset to DHCP — this removes all static addresses
-    netsh(&[
-        "interface",
-        "ip",
-        "set",
-        "address",
-        iface,
-        "dhcp",
-    ])?;
+    netsh(&["interface", "ip", "set", "address", iface, "dhcp"])?;
 
-    netsh(&[
-        "interface",
-        "ip",
-        "set",
-        "dns",
-        iface,
-        "dhcp",
-    ])?;
+    netsh(&["interface", "ip", "set", "dns", iface, "dhcp"])?;
 
     println!(
         "  {} Interface flushed — DHCP re-enabled for IP and DNS.",
@@ -368,12 +332,10 @@ fn set_mac(iface: &str, mac: &str) -> Result<()> {
 
 /// Run a netsh command and capture output. Returns error on non-zero exit.
 fn netsh(args: &[&str]) -> Result<String> {
-    let output = Command::new("netsh").args(args).output().map_err(|e| {
-        format!(
-            "Failed to run netsh (is it in PATH?): {}",
-            e
-        )
-    })?;
+    let output = Command::new("netsh")
+        .args(args)
+        .output()
+        .map_err(|e| format!("Failed to run netsh (is it in PATH?): {}", e))?;
 
     let stdout = String::from_utf8_lossy(&output.stdout).to_string();
     let stderr = String::from_utf8_lossy(&output.stderr).to_string();

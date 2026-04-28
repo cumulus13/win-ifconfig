@@ -2,12 +2,12 @@
 
 All notable changes to win-ifconfig will be documented in this file.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.5/),
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.7/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-## [1.0.6] - 2026-04-27
+## [1.0.7] - 2026-04-27
 
 ### Added
 - **Write/configure subcommands** (all require Administrator):
