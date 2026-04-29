@@ -4,13 +4,13 @@
 
 [![Build & Release](https://github.com/cumulus13/win-ifconfig/actions/workflows/release.yml/badge.svg)](https://github.com/cumulus13/win-ifconfig/actions/workflows/release.yml)
 [![CI](https://github.com/cumulus13/win-ifconfig/actions/workflows/ci.yml/badge.svg)](https://github.com/cumulus13/win-ifconfig/actions/workflows/ci.yml)
-[![Crates.io](https://img.shields.io/crates/v/ifconfig.svg)](https://crates.io/crates/ifconfig)
+[![Crates.io](https://img.shields.io/crates/v/win-ifconfig.svg)](https://crates.io/crates/win-ifconfig)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Platform: Windows](https://img.shields.io/badge/platform-Windows-blue?logo=windows)](https://github.com/cumulus13/win-ifconfig/releases)
 
 ```
 ╔══════════════════════════════════════════════════════════════════════╗
-║  🌐  win-ifconfig v1.0.11  ─  Windows Network Interface Information  ║
+║  🌐  win-ifconfig v1.0.12  ─  Windows Network Interface Information  ║
 ╚══════════════════════════════════════════════════════════════════════╝
   🖥️  Hostname: WORKSTATION-01   🕐 2024-01-15 14:32:07 WIB
 
