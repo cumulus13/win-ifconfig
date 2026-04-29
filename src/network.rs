@@ -648,7 +648,9 @@ fn read_dns_from_registry(
     let servers = read_reg_dns_value(hkey, "DhcpNameServer")
         .or_else(|_| read_reg_dns_value(hkey, "NameServer"));
 
-    unsafe { let _ = RegCloseKey(hkey).ok(); };
+    unsafe {
+        let _ = RegCloseKey(hkey).ok();
+    };
 
     servers
 }
@@ -754,7 +756,9 @@ fn read_lease_times_from_registry(guid: &str) -> (Option<String>, Option<String>
     let obtained = read_reg_unix_timestamp(hkey, "LeaseObtainedTime");
     let expires = read_reg_unix_timestamp(hkey, "LeaseTerminatesTime");
 
-    unsafe { let _ = RegCloseKey(hkey).ok(); };
+    unsafe {
+        let _ = RegCloseKey(hkey).ok();
+    };
 
     (obtained, expires)
 }
