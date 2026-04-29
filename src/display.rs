@@ -374,15 +374,30 @@ fn print_adapter_full(adapter: &AdapterInfo, cli: &Cli) {
     }
 
     // ─── DNS info ─────────────────────────────────────────────────────────
-    if (cli.dns || cli.verbose) && !adapter.dns_servers.is_empty() {
+    if cli.dns || cli.verbose {
         println!();
-        println!(
-            "        {} {}",
-            "🔍".dimmed(),
-            "DNS servers:".bright_cyan().bold()
-        );
-        for dns in &adapter.dns_servers {
-            println!("             {}", dns.bright_white());
+        if adapter.dns_servers.is_empty() {
+            println!(
+                "        {} {} {}",
+                "🔍".dimmed(),
+                "DNS:".bright_cyan().bold(),
+                "(none configured)".bright_black()
+            );
+        } else {
+            let source_label = if adapter.dhcp_enabled {
+                " (via DHCP)".bright_black().to_string()
+            } else {
+                " (static)".bright_black().to_string()
+            };
+            println!(
+                "        {} {}{}",
+                "🔍".dimmed(),
+                "DNS servers:".bright_cyan().bold(),
+                source_label
+            );
+            for dns in &adapter.dns_servers {
+                println!("             {}", dns.bright_white());
+            }
         }
     }
 

@@ -398,7 +398,7 @@ fn parse_adapter(adapter: &IP_ADAPTER_ADDRESSES_LH) -> Option<AdapterInfo> {
         gw_ptr = gw.Next;
     }
 
-    // DNS servers
+    // DNS servers — try FirstDnsServerAddress first (works for static DNS)
     let mut dns_servers = Vec::new();
     let mut dns_ptr = adapter.FirstDnsServerAddress;
     while !dns_ptr.is_null() {
@@ -415,10 +415,16 @@ fn parse_adapter(adapter: &IP_ADAPTER_ADDRESSES_LH) -> Option<AdapterInfo> {
     // DHCP server — Dhcpv4Server is a SOCKET_ADDRESS value (not a pointer)
     let dhcp_server = parse_socket_address(&adapter.Dhcpv4Server).map(|ip| ip.to_string());
 
-    // DHCP lease timestamps are not exposed in the windows-rs 0.58 IP_ADAPTER_ADDRESSES_LH
-    // binding. They can be retrieved from the registry in a future enhancement.
-    let dhcp_lease_obtained: Option<String> = None;
-    let dhcp_lease_expires: Option<String> = None;
+    // For DHCP-assigned DNS, FirstDnsServerAddress is often empty on Windows.
+    // Fall back to the registry (keyed by adapter GUID), which always has current DNS.
+    if dns_servers.is_empty() && !name.is_empty() {
+        if let Ok(reg_dns) = read_dns_from_registry(&name) {
+            dns_servers = reg_dns;
+        }
+    }
+
+    // DHCP lease times from registry (keyed by adapter GUID)
+    let (dhcp_lease_obtained, dhcp_lease_expires) = read_lease_times_from_registry(&name);
 
     // WINS servers
     let mut wins_servers = Vec::new();
@@ -599,4 +605,199 @@ fn filetime_to_string(ft: i64) -> Option<String> {
     let dt = Utc.timestamp_opt(unix_ts_secs, 0).single()?;
     let local: chrono::DateTime<chrono::Local> = dt.into();
     Some(local.format("%Y-%m-%d %H:%M:%S").to_string())
+}
+
+// ─── Registry helpers for DNS and DHCP lease times ───────────────────────────
+// Windows stores per-adapter network config under:
+//   HKLM\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\Interfaces\{GUID}
+// Key fields:
+//   NameServer        — static DNS (comma or space separated)
+//   DhcpNameServer    — DHCP-assigned DNS (space separated)
+//   LeaseObtainedTime — DHCP lease obtained (Unix timestamp, REG_DWORD)
+//   LeaseTerminatesTime — DHCP lease expiry (Unix timestamp, REG_DWORD)
+
+#[cfg(windows)]
+fn read_dns_from_registry(guid: &str) -> std::result::Result<Vec<String>, Box<dyn std::error::Error>> {
+    use windows::Win32::System::Registry::{
+        RegOpenKeyExW, RegQueryValueExW, RegCloseKey,
+        HKEY_LOCAL_MACHINE, KEY_READ,
+    };
+    use windows::core::PCWSTR;
+
+    let key_path = format!(
+        "SYSTEM\\CurrentControlSet\\Services\\Tcpip\\Parameters\\Interfaces\\{}",
+        guid
+    );
+    let key_path_wide: Vec<u16> = key_path.encode_utf16().chain(std::iter::once(0)).collect();
+
+    let mut hkey = windows::Win32::System::Registry::HKEY::default();
+    let result = unsafe {
+        RegOpenKeyExW(
+            HKEY_LOCAL_MACHINE,
+            PCWSTR(key_path_wide.as_ptr()),
+            0,
+            KEY_READ,
+            &mut hkey,
+        )
+    };
+    if result.is_err() {
+        return Err("Registry key not found".into());
+    }
+
+    let servers = read_reg_dns_value(hkey, "DhcpNameServer")
+        .or_else(|_| read_reg_dns_value(hkey, "NameServer"));
+
+    unsafe { RegCloseKey(hkey).ok() };
+
+    servers
+}
+
+#[cfg(windows)]
+fn read_reg_dns_value(
+    hkey: windows::Win32::System::Registry::HKEY,
+    value_name: &str,
+) -> std::result::Result<Vec<String>, Box<dyn std::error::Error>> {
+    use windows::Win32::System::Registry::RegQueryValueExW;
+    use windows::core::PCWSTR;
+
+    let name_wide: Vec<u16> = value_name.encode_utf16().chain(std::iter::once(0)).collect();
+    let mut data_type: u32 = 0;
+    let mut data_len: u32 = 0;
+
+    // First call: get size
+    let _ = unsafe {
+        RegQueryValueExW(
+            hkey,
+            PCWSTR(name_wide.as_ptr()),
+            None,
+            Some(&mut data_type),
+            None,
+            Some(&mut data_len),
+        )
+    };
+
+    if data_len == 0 {
+        return Err("Empty value".into());
+    }
+
+    let mut buf = vec![0u16; (data_len as usize / 2) + 1];
+    let result = unsafe {
+        RegQueryValueExW(
+            hkey,
+            PCWSTR(name_wide.as_ptr()),
+            None,
+            Some(&mut data_type),
+            Some(buf.as_mut_ptr() as *mut u8),
+            Some(&mut data_len),
+        )
+    };
+
+    if result.is_err() {
+        return Err("Failed to read registry value".into());
+    }
+
+    // Trim null terminators
+    while buf.last() == Some(&0) {
+        buf.pop();
+    }
+
+    let s = String::from_utf16_lossy(&buf);
+    if s.is_empty() {
+        return Err("Empty DNS string".into());
+    }
+
+    // Windows separates DNS with spaces or commas
+    let servers: Vec<String> = s
+        .split(|c| c == ' ' || c == ',')
+        .map(|s| s.trim().to_string())
+        .filter(|s| !s.is_empty())
+        .collect();
+
+    if servers.is_empty() {
+        return Err("No DNS servers found".into());
+    }
+
+    Ok(servers)
+}
+
+#[cfg(windows)]
+fn read_lease_times_from_registry(guid: &str) -> (Option<String>, Option<String>) {
+    use windows::Win32::System::Registry::{
+        RegOpenKeyExW, RegQueryValueExW, RegCloseKey,
+        HKEY_LOCAL_MACHINE, KEY_READ,
+    };
+    use windows::core::PCWSTR;
+
+    let key_path = format!(
+        "SYSTEM\\CurrentControlSet\\Services\\Tcpip\\Parameters\\Interfaces\\{}",
+        guid
+    );
+    let key_path_wide: Vec<u16> = key_path.encode_utf16().chain(std::iter::once(0)).collect();
+
+    let mut hkey = windows::Win32::System::Registry::HKEY::default();
+    let result = unsafe {
+        RegOpenKeyExW(
+            HKEY_LOCAL_MACHINE,
+            PCWSTR(key_path_wide.as_ptr()),
+            0,
+            KEY_READ,
+            &mut hkey,
+        )
+    };
+    if result.is_err() {
+        return (None, None);
+    }
+
+    let obtained = read_reg_unix_timestamp(hkey, "LeaseObtainedTime");
+    let expires = read_reg_unix_timestamp(hkey, "LeaseTerminatesTime");
+
+    unsafe { RegCloseKey(hkey).ok() };
+
+    (obtained, expires)
+}
+
+#[cfg(windows)]
+fn read_reg_unix_timestamp(
+    hkey: windows::Win32::System::Registry::HKEY,
+    value_name: &str,
+) -> Option<String> {
+    use windows::Win32::System::Registry::RegQueryValueExW;
+    use windows::core::PCWSTR;
+
+    let name_wide: Vec<u16> = value_name.encode_utf16().chain(std::iter::once(0)).collect();
+    let mut data_type: u32 = 0;
+    let mut value: u32 = 0;
+    let mut data_len: u32 = 4;
+
+    let result = unsafe {
+        RegQueryValueExW(
+            hkey,
+            PCWSTR(name_wide.as_ptr()),
+            None,
+            Some(&mut data_type),
+            Some(&mut value as *mut u32 as *mut u8),
+            Some(&mut data_len),
+        )
+    };
+
+    if result.is_err() || value == 0 {
+        return None;
+    }
+
+    // Value is a Unix timestamp (seconds since 1970-01-01)
+    use chrono::{DateTime, Local, TimeZone, Utc};
+    let dt = Utc.timestamp_opt(value as i64, 0).single()?;
+    let local: DateTime<Local> = dt.into();
+    Some(local.format("%Y-%m-%d %H:%M:%S").to_string())
+}
+
+// Non-Windows stubs
+#[cfg(not(windows))]
+fn read_dns_from_registry(_guid: &str) -> std::result::Result<Vec<String>, Box<dyn std::error::Error>> {
+    Err("Registry not available on non-Windows".into())
+}
+
+#[cfg(not(windows))]
+fn read_lease_times_from_registry(_guid: &str) -> (Option<String>, Option<String>) {
+    (None, None)
 }
