@@ -11,3 +11,6 @@ Cargo.lock
 # Added entries (2 items)
 *sublime*
 target/
+
+# Added entries (1 items)
+*.bak

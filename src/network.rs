@@ -620,19 +620,16 @@ fn filetime_to_string(ft: i64) -> Option<String> {
 fn read_dns_from_registry(
     guid: &str,
 ) -> std::result::Result<Vec<String>, Box<dyn std::error::Error>> {
+    use windows::core::PCWSTR;
     use windows::Win32::System::Registry::{
         RegCloseKey, RegOpenKeyExW, HKEY_LOCAL_MACHINE, KEY_READ,
     };
-    use windows::core::PCWSTR;
 
     let key_path = format!(
         "SYSTEM\\CurrentControlSet\\Services\\Tcpip\\Parameters\\Interfaces\\{}",
         guid
     );
-    let key_path_wide: Vec<u16> = key_path
-        .encode_utf16()
-        .chain(std::iter::once(0))
-        .collect();
+    let key_path_wide: Vec<u16> = key_path.encode_utf16().chain(std::iter::once(0)).collect();
 
     let mut hkey = windows::Win32::System::Registry::HKEY::default();
     let result = unsafe {
@@ -651,7 +648,7 @@ fn read_dns_from_registry(
     let servers = read_reg_dns_value(hkey, "DhcpNameServer")
         .or_else(|_| read_reg_dns_value(hkey, "NameServer"));
 
-    unsafe { RegCloseKey(hkey).ok() };
+    unsafe { let _ = RegCloseKey(hkey).ok(); };
 
     servers
 }
@@ -661,10 +658,13 @@ fn read_reg_dns_value(
     hkey: windows::Win32::System::Registry::HKEY,
     value_name: &str,
 ) -> std::result::Result<Vec<String>, Box<dyn std::error::Error>> {
-    use windows::Win32::System::Registry::{RegQueryValueExW, REG_VALUE_TYPE};
     use windows::core::PCWSTR;
+    use windows::Win32::System::Registry::{RegQueryValueExW, REG_VALUE_TYPE};
 
-    let name_wide: Vec<u16> = value_name.encode_utf16().chain(std::iter::once(0)).collect();
+    let name_wide: Vec<u16> = value_name
+        .encode_utf16()
+        .chain(std::iter::once(0))
+        .collect();
     let mut data_type = REG_VALUE_TYPE(0);
     let mut data_len: u32 = 0;
 
@@ -726,19 +726,16 @@ fn read_reg_dns_value(
 
 #[cfg(windows)]
 fn read_lease_times_from_registry(guid: &str) -> (Option<String>, Option<String>) {
+    use windows::core::PCWSTR;
     use windows::Win32::System::Registry::{
         RegCloseKey, RegOpenKeyExW, HKEY_LOCAL_MACHINE, KEY_READ,
     };
-    use windows::core::PCWSTR;
 
     let key_path = format!(
         "SYSTEM\\CurrentControlSet\\Services\\Tcpip\\Parameters\\Interfaces\\{}",
         guid
     );
-    let key_path_wide: Vec<u16> = key_path
-        .encode_utf16()
-        .chain(std::iter::once(0))
-        .collect();
+    let key_path_wide: Vec<u16> = key_path.encode_utf16().chain(std::iter::once(0)).collect();
 
     let mut hkey = windows::Win32::System::Registry::HKEY::default();
     let result = unsafe {
@@ -757,7 +754,7 @@ fn read_lease_times_from_registry(guid: &str) -> (Option<String>, Option<String>
     let obtained = read_reg_unix_timestamp(hkey, "LeaseObtainedTime");
     let expires = read_reg_unix_timestamp(hkey, "LeaseTerminatesTime");
 
-    unsafe { RegCloseKey(hkey).ok() };
+    unsafe { let _ = RegCloseKey(hkey).ok(); };
 
     (obtained, expires)
 }
@@ -767,10 +764,13 @@ fn read_reg_unix_timestamp(
     hkey: windows::Win32::System::Registry::HKEY,
     value_name: &str,
 ) -> Option<String> {
-    use windows::Win32::System::Registry::{RegQueryValueExW, REG_VALUE_TYPE};
     use windows::core::PCWSTR;
+    use windows::Win32::System::Registry::{RegQueryValueExW, REG_VALUE_TYPE};
 
-    let name_wide: Vec<u16> = value_name.encode_utf16().chain(std::iter::once(0)).collect();
+    let name_wide: Vec<u16> = value_name
+        .encode_utf16()
+        .chain(std::iter::once(0))
+        .collect();
     let mut data_type = REG_VALUE_TYPE(0);
     let mut value: u32 = 0;
     let mut data_len: u32 = 4;
