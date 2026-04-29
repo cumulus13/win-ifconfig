@@ -617,10 +617,11 @@ fn filetime_to_string(ft: i64) -> Option<String> {
 //   LeaseTerminatesTime — DHCP lease expiry (Unix timestamp, REG_DWORD)
 
 #[cfg(windows)]
-fn read_dns_from_registry(guid: &str) -> std::result::Result<Vec<String>, Box<dyn std::error::Error>> {
+fn read_dns_from_registry(
+    guid: &str,
+) -> std::result::Result<Vec<String>, Box<dyn std::error::Error>> {
     use windows::Win32::System::Registry::{
-        RegOpenKeyExW, RegQueryValueExW, RegCloseKey,
-        HKEY_LOCAL_MACHINE, KEY_READ,
+        RegCloseKey, RegOpenKeyExW, HKEY_LOCAL_MACHINE, KEY_READ,
     };
     use windows::core::PCWSTR;
 
@@ -628,7 +629,10 @@ fn read_dns_from_registry(guid: &str) -> std::result::Result<Vec<String>, Box<dy
         "SYSTEM\\CurrentControlSet\\Services\\Tcpip\\Parameters\\Interfaces\\{}",
         guid
     );
-    let key_path_wide: Vec<u16> = key_path.encode_utf16().chain(std::iter::once(0)).collect();
+    let key_path_wide: Vec<u16> = key_path
+        .encode_utf16()
+        .chain(std::iter::once(0))
+        .collect();
 
     let mut hkey = windows::Win32::System::Registry::HKEY::default();
     let result = unsafe {
@@ -657,11 +661,11 @@ fn read_reg_dns_value(
     hkey: windows::Win32::System::Registry::HKEY,
     value_name: &str,
 ) -> std::result::Result<Vec<String>, Box<dyn std::error::Error>> {
-    use windows::Win32::System::Registry::RegQueryValueExW;
+    use windows::Win32::System::Registry::{RegQueryValueExW, REG_VALUE_TYPE};
     use windows::core::PCWSTR;
 
     let name_wide: Vec<u16> = value_name.encode_utf16().chain(std::iter::once(0)).collect();
-    let mut data_type: u32 = 0;
+    let mut data_type = REG_VALUE_TYPE(0);
     let mut data_len: u32 = 0;
 
     // First call: get size
@@ -723,8 +727,7 @@ fn read_reg_dns_value(
 #[cfg(windows)]
 fn read_lease_times_from_registry(guid: &str) -> (Option<String>, Option<String>) {
     use windows::Win32::System::Registry::{
-        RegOpenKeyExW, RegQueryValueExW, RegCloseKey,
-        HKEY_LOCAL_MACHINE, KEY_READ,
+        RegCloseKey, RegOpenKeyExW, HKEY_LOCAL_MACHINE, KEY_READ,
     };
     use windows::core::PCWSTR;
 
@@ -732,7 +735,10 @@ fn read_lease_times_from_registry(guid: &str) -> (Option<String>, Option<String>
         "SYSTEM\\CurrentControlSet\\Services\\Tcpip\\Parameters\\Interfaces\\{}",
         guid
     );
-    let key_path_wide: Vec<u16> = key_path.encode_utf16().chain(std::iter::once(0)).collect();
+    let key_path_wide: Vec<u16> = key_path
+        .encode_utf16()
+        .chain(std::iter::once(0))
+        .collect();
 
     let mut hkey = windows::Win32::System::Registry::HKEY::default();
     let result = unsafe {
@@ -761,11 +767,11 @@ fn read_reg_unix_timestamp(
     hkey: windows::Win32::System::Registry::HKEY,
     value_name: &str,
 ) -> Option<String> {
-    use windows::Win32::System::Registry::RegQueryValueExW;
+    use windows::Win32::System::Registry::{RegQueryValueExW, REG_VALUE_TYPE};
     use windows::core::PCWSTR;
 
     let name_wide: Vec<u16> = value_name.encode_utf16().chain(std::iter::once(0)).collect();
-    let mut data_type: u32 = 0;
+    let mut data_type = REG_VALUE_TYPE(0);
     let mut value: u32 = 0;
     let mut data_len: u32 = 4;
 
@@ -793,7 +799,9 @@ fn read_reg_unix_timestamp(
 
 // Non-Windows stubs
 #[cfg(not(windows))]
-fn read_dns_from_registry(_guid: &str) -> std::result::Result<Vec<String>, Box<dyn std::error::Error>> {
+fn read_dns_from_registry(
+    _guid: &str,
+) -> std::result::Result<Vec<String>, Box<dyn std::error::Error>> {
     Err("Registry not available on non-Windows".into())
 }
 

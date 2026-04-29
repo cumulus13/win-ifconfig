@@ -10,7 +10,7 @@
 
 ```
 ╔══════════════════════════════════════════════════════════════════════╗
-║  🌐  win-ifconfig v1.0.7  ─  Windows Network Interface Information  ║
+║  🌐  win-ifconfig v1.0.9  ─  Windows Network Interface Information  ║
 ╚══════════════════════════════════════════════════════════════════════╝
   🖥️  Hostname: WORKSTATION-01   🕐 2024-01-15 14:32:07 WIB
 
